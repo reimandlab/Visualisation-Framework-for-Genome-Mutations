@@ -34,7 +34,17 @@
 
 {% macro gene_results(gene) %}
   <div class="result">
-    <h4 class="gene"><a href="{{ url_for('SequenceView:show', refseq=gene.preferred_isoform.refseq) }}">{{ gene.name }}</a></h4>
+    <div class="result-top">
+      <div class="matched-features">
+        {% for feature, score in gene.matches.items() %}
+          <span title="This gene was found based on {{ feature.pretty_name }} with {{ 1 / (1 + score) }} score">
+        {{ feature.pretty_name }}
+        </span>
+        {% endfor %}
+      </div>
+      <h4 class="gene"><a href="{{ url_for('SequenceView:show', refseq=gene.preferred_isoform.refseq) }}">{{ gene.name }}</a></h4>
+    </div>
+
     <div class="chrom">{{ gene.chrom }}</div>
     <div class="strand">{{ '+' if gene.strand else '-' }}</div>
 

@@ -23,6 +23,7 @@
 .results
   padding: 0 20px
   min-height: 300px
+  clear: both
 
   ul
     padding-left: 5px
@@ -38,6 +39,7 @@
 
   .empty, .waiting, .no-results
     text-align: center
+    overflow: hidden
 
     span
       display: block
@@ -73,14 +75,25 @@
     float: right
 
   .options
-    .widgets-bar.widgets .widget .value
-      float: left
-      top: 0
-    .checkbox
+    overflow: hidden
+    .widget.checkbox
       margin-top: 5px
+      margin-bottom: 0
     .value .checkbox
-      margin-top: 0
+      margin: 0
 
+  .checkboxes-inline .checkbox
+    margin: 0
+
+
+#proteins-form
+  .options
+    margin: 5px 0
+  .inputs
+    margin-top: 5px
+    margin-bottom: 10px
+  .results
+    margin-top: 10px
 
 .table-rowspan-hover
   /*
@@ -107,3 +120,28 @@
 
 .btn.run-again
   float: right
+
+h4.gene
+  clear: none
+
+.result
+  .result-top
+    border-top: 1px dashed #eee
+    padding-top: 5px
+  &:first-of-type
+    .result-top
+      border: 0
+      padding-top: 0
+    .matched-features
+      margin-top: 0
+
+.matched-features
+  margin-top: 8px
+  float: right
+  span
+    border: 1px solid #ddd
+    color: grey
+    border-radius: 3px
+    padding: 3px 10px
+    margin-left: 3px
+    font-size: 85%

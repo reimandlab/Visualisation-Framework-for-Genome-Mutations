@@ -10,19 +10,30 @@ from helpers.filters import Filter
 from helpers.widgets import FilterWidget
 
 
-def filters_data_view(protein, filter_manager):
-    from flask import request
-    from flask import render_template
-    return {
-        'query': filter_manager.url_string() or '',
-        'expanded_query': filter_manager.url_string(expanded=True) or '',
-        'checksum': request.args.get('checksum', ''),
-        'dataset_specific_widgets': render_template(
+class FiltersData:
+    """State transfer object AsyncFiltersHandler from filters.js"""
+
+    def __init__(self, filter_manager):
+        from flask import request
+        self.query = filter_manager.url_string() or ''
+        self.expanded_query = filter_manager.url_string(expanded=True) or ''
+        self.checksum = request.args.get('checksum', '')
+        self.dynamic_widgets = ''
+
+    def to_json(self):
+        return self.__dict__
+
+
+class ProteinFiltersData(FiltersData):
+
+    def __init__(self, filter_manager, protein):
+        super().__init__(filter_manager)
+        from flask import render_template
+        self.dynamic_widgets = render_template(
             'widgets/widget_list.html',
             widgets=create_dataset_specific_widgets(protein, filter_manager.filters),
             collapse=True
         )
-    }
 
 
 def populations_labels(populations):

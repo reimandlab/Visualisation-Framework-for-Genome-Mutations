@@ -1,10 +1,8 @@
 {% from 'widgets/widgets.html' import render_widget with context %}
 
-<div class="btn-group filters-bar widgets-bar widgets" role="group">
+<div class="filters-bar widgets-bar widgets {{ bar_class }}" role="group">
     {% for widget in widgets %}
-      <div class="btn-group">
-        {{ render_widget(widget) }}
-      </div>
+      {{ render_widget(widget) }}
     {% endfor %}
     <button class="btn btn-primary save js-hidden" title="Update">
       <span class="glyphicon glyphicon-ok"></span>

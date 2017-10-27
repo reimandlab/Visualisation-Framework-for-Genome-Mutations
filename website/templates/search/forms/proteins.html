@@ -7,19 +7,22 @@
   id="proteins-form"
 >
   <div class="options">
-    {% with widgets=[widgets.at_least_one_ptm] %}
+    {% with widgets=[widgets.proteins['ptm']] %}
       {% include 'filters/bar.html' %}
     {% endwith %}
   </div>
-  <div class="inputs">
+  <div class="inputs widget">
     <input
-      name="proteins"
+      name="filter[Search.query]"
+      type="text"
       class="form-control"
       placeholder="TP53 or NM_000345"
-      id="protein_search"
       {% if query %} value="{{ query }}" {% endif %}
     >
   </div>
+  {% with widgets=[widgets.proteins['feature']] %}
+    {% include 'filters/bar.html' %}
+  {% endwith %}
   <div class="results panel panel-default {{ 'hidden' if not results }}">
     <ul>
     {% for result in results %}
@@ -43,7 +46,7 @@
   </div>
   <div class="buttons">
     <button
-      class="btn btn-primary {{ 'js-hidden' if (query | length) > 4 }} search-button"
+      class="btn btn-primary {{ 'js-hidden' if (query | length) > 4 }} search-button save"
     >
       Search
       <span class="glyphicon glyphicon-search"></span>

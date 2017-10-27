@@ -13,12 +13,16 @@ from flask import current_app
 from flask_classful import FlaskView
 from flask_classful import route
 from flask_login import current_user
+from sqlalchemy.orm import Load
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.datastructures import FileStorage
 
 from app import celery
 from helpers.bioinf import complement
-from models import Protein, Pathway, Cancer, GeneList, MC3Mutation, Disease, InheritedMutation, ClinicalData
+from models import (
+    Protein, Pathway, Cancer, GeneList, MC3Mutation, Disease, InheritedMutation, ClinicalData,
+    OrderedDict,
+)
 from models import Gene
 from models import Mutation
 from models import UsersMutationsDataset
@@ -30,12 +34,32 @@ from helpers.widgets import FilterWidget
 from views.gene import prepare_subqueries
 from ._commons import get_protein_muts
 from database import db, levenshtein_sorted, bdb
-from search.gene import search_features, GeneMatch
+from search.gene import GeneMatch, search_feature_engines
+
+search_features = [engine.name for engine in search_feature_engines]
+
+
+def create_engines(options=None):
+    engines = OrderedDict()
+    for engine in search_feature_engines:
+        engines[engine.name] = engine(options)
+    return engines
+
+
+advanced_search_engines = create_engines()
+search_bar_search_engines = create_engines(
+    [
+
+        Load(Gene).defer('full_name').defer('strand').defer('chrom').defer('entrez_id'),
+        Load(Protein).defer('summary').defer('sequence').defer('disorder_map')
+    ]
+)
 
 
 def search_proteins(
         phrase, limit=None, filter_manager=None,
-        features=('gene_symbol', 'refseq', 'gene_name', 'uniprot')
+        features=('gene_symbol', 'refseq', 'gene_name', 'uniprot'),
+        engines=advanced_search_engines
 ):
     """Search for a protein isoform or gene.
     Only genes which have a primary isoforms will be returned.
@@ -53,7 +77,12 @@ def search_proteins(
         features:
             an iterable collection of names of features to include in
             the search; must be a subset of search.gene.search_features
+        engines:
+            mapping of engine name => engine instance of engines to use
     """
+    if isinstance(features, str):
+        features = [features]
+
     phrase = phrase.strip()
 
     if not phrase:
@@ -73,7 +102,7 @@ def search_proteins(
     matches = []
 
     for feature in features:
-        search_function = search_features[feature].search
+        search_function = engines[feature].search
         results = search_function(phrase, sql_filters, limit=limit)
         matches.extend(results)
 
@@ -231,9 +260,22 @@ class MutationSearch:
             self.add_mutation_items(items, line)
 
 
+class Feature:
+    """Target class for feature filtering"""
+    pass
+
+
+class Search:
+    pass
+
+
 class SearchViewFilters(FilterManager):
 
     def __init__(self, **kwargs):
+
+        available_features = search_features
+        active_features = set(available_features) - {'summary'}
+
         filters = [
             # Why default = False? Due to used widget: checkbox.
             # It is not possible to distinguish between user not asking for
@@ -254,7 +296,15 @@ class SearchViewFilters(FilterManager):
             Filter(
                 Protein, 'has_ptm_mutations', comparators=['eq'],
                 as_sqlalchemy=True
-            )
+            ),
+            Filter(
+                Feature, 'name', comparators=['in'],
+                default=list(active_features),
+                choices=available_features,
+            ),
+            Filter(
+                Search, 'query', comparators=['eq'],
+            ),
         ]
         super().__init__(filters)
         self.update_from_request(request)
@@ -262,15 +312,32 @@ class SearchViewFilters(FilterManager):
 
 def make_widgets(filter_manager):
     return {
-        'is_ptm': FilterWidget(
-            'Show all mutations (by default only PTM mutations are shown)',
-            'checkbox',
-            filter=filter_manager.filters['Mutation.is_ptm']
-        ),
-        'at_least_one_ptm': FilterWidget(
-            'Show only proteins with PTM mutations', 'checkbox',
-            filter=filter_manager.filters['Protein.has_ptm_mutations']
-        )
+        'proteins': {
+            'ptm': FilterWidget(
+                'Show only proteins with PTM mutations',
+                'checkbox',
+                filter=filter_manager.filters['Protein.has_ptm_mutations'],
+                class_name='pull-right'
+            ),
+            'feature': FilterWidget(
+                'Search by', 'checkbox_multiple',
+                filter=filter_manager.filters['Feature.name'],
+                labels=[
+                    engine.pretty_name
+                    for engine in advanced_search_engines.values()
+                ],
+                all_selected_label='All features',
+                class_name='checkboxes-inline'
+            )
+        },
+        'mutations': [
+            FilterWidget(
+                'Show all mutations (by default only PTM mutations are shown)',
+                'checkbox',
+                filter=filter_manager.filters['Mutation.is_ptm'],
+                class_name='pull-right'
+            ),
+        ]
     }
 
 
@@ -301,9 +368,10 @@ class SearchView(FlaskView):
 
         filter_manager = SearchViewFilters()
 
-        query = request.args.get('proteins', '')
+        features = filter_manager.get_value('Feature.name')
+        query = filter_manager.get_value('Search.query') or ''
 
-        results = search_proteins(query, 20, filter_manager)
+        results = search_proteins(query, 20, filter_manager, features)
 
         return template(
             'search/index.html',
@@ -491,26 +559,35 @@ class SearchView(FlaskView):
         )
 
     def autocomplete_proteins(self, limit=20):
-        """Autocompletion API for search for proteins."""
+        """Autocompletion API for search Advanced Proteins Search."""
 
         filter_manager = SearchViewFilters()
-        # TODO: implement on client side pagination?
-        query = unquote(request.args.get('q')) or ''
 
-        entries = search_proteins(query, limit, filter_manager)
-        # page = request.args.get('page', 0)
-        # Pagination(Pathway.query)
-        # just pass pagination html too?
+        # TODO: implement on client side pagination?
+
+        features = filter_manager.get_value('Feature.name')
+        query = filter_manager.get_value('Search.query')
+
+        content = {}
+
+        if query:
+            entries = search_proteins(query, limit, filter_manager, features)
+            content = {
+                'query': query,
+                'results': [
+                    {
+                        'value': gene.name,
+                        'html': template('search/results/gene.html', gene=gene)
+                    }
+                    for gene in entries
+                ],
+            }
+
+        from views.filters import FiltersData
 
         response = {
-            'query': query,
-            'results': [
-                {
-                    'value': gene.name,
-                    'html': template('search/results/gene.html', gene=gene)
-                }
-                for gene in entries
-            ]
+            'content': content,
+            'filters': FiltersData(filter_manager).to_json()
         }
 
         return jsonify(response)
@@ -800,8 +877,11 @@ def json_message(msg):
 
 
 def autocomplete_gene(query, limit=5):
-    """Returns: (autocompletion_gene_results, are_there_more)"""
-    entries = search_proteins(query, limit + 1)
+    """Gene auto-completion used in search bars.
+
+    Returns: (autocompletion_gene_results, are_there_more)
+    """
+    entries = search_proteins(query, limit + 1, engines=search_bar_search_engines)
 
     items = [
         gene.to_json()

@@ -128,9 +128,8 @@ def test_multiselect_filter():
         assert len(list(tested_filter.apply(test_objects))) == length
 
 
-def test_url_string():
-
-    manager = filters.FilterManager(
+def create_manager():
+    return filters.FilterManager(
         [
             filters.Filter(
                 Model, 'color', comparators=['eq'],
@@ -142,7 +141,11 @@ def test_url_string():
         ]
     )
 
-    assert manager.url_string() == None
+
+def test_url_string():
+    manager = create_manager()
+
+    assert manager.url_string() is None
     assert manager.url_string(expanded=True) == 'Model.color:eq:red'
 
     manager.filters['Model.shape'].update('rectangle')
@@ -168,8 +171,64 @@ def test_url_string():
     )
 
     manager.filters['Model.color'].visible = False
-    assert manager.url_string(expanded=True) == 'Model.shape:eq:rectangle'
+    assert manager.url_string() == 'Model.shape:eq:rectangle'
 
     manager.filters['Model.shape'].update(None)
-    assert manager.url_string() == None
+    assert manager.url_string() is None
     assert manager.url_string() == manager.url_string(expanded=True)
+
+
+class FakeRequest:
+
+    def __init__(self, args, method='GET'):
+        self.args = args
+        self.method = method
+
+
+def test_update_request():
+
+    request_args = [
+        # from string
+        {'filters': 'Model.shape:eq:rectangle'},
+        # from fallback
+        {
+            'filter[Model.shape]': 'rectangle',
+            'filter[Model.shape][cmp]': 'eq',
+            'fallback': True
+        },
+        # from fallback - without comparator (the default one is 'eq')
+        {
+            'filter[Model.shape]': 'rectangle',
+            'fallback': True
+        },
+    ]
+
+    for args in request_args:
+        manager = create_manager()
+        request = FakeRequest(args)
+        manager.update_from_request(request)
+        assert manager.url_string() == 'Model.shape:eq:rectangle'
+
+    # soft reset
+    manager = create_manager()
+    request = FakeRequest({
+        'filters': 'Model.shape:eq:rectangle',
+        'clear_filters': True
+    })
+    manager.update_from_request(request)
+
+    assert manager.url_string() is None
+
+    # value with colons
+
+    colon_request_args = [
+        {'filter[Model.shape]': 'rectangle:or:circle', 'fallback': True},
+        {'filter': 'rectangle:or:circle'}
+    ]
+
+    for args in colon_request_args:
+        request = FakeRequest(args)
+        manager.update_from_request(request)
+
+        assert manager.get_value('Model.shape') == 'rectangle:or:circle'
+        assert manager.url_string() == 'Model.shape:eq:rectangle:or:circle'

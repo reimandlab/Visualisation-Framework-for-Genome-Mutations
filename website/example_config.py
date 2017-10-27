@@ -13,6 +13,7 @@ You should change the name of this file to `config.py`.
 # -Flask generic settings
 SECRET_KEY = 'replace_this'
 DEBUG = True
+PREFERRED_URL_SCHEME = 'http'
 # use public IP addresses
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 5000

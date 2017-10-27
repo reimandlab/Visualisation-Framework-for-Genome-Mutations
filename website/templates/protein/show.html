@@ -313,7 +313,8 @@
      */
 
     /**
-     * Callback for AsyncFiltersHandler loading representation from server response.
+     * @callback for {@see AsyncFiltersHandler.Config.data_handler}
+     * Callback  loading representation from server response.
      * @param {SequenceViewData} data
      * @param {FiltersData} filters_data
      */
@@ -389,7 +390,7 @@
     filters_handler.init({
         form: initial_widgets_form,
         data_handler: load_data,
-        representation_url: "{{ url_for('SequenceView:representation_data', refseq=protein.refseq) }}",
+        endpoint_url: "{{ url_for('SequenceView:representation_data', refseq=protein.refseq) }}",
         on_loading_start: function (){
             if (tracks.isReady())
                 tracks.hide();

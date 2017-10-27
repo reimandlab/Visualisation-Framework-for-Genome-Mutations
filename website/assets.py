@@ -74,6 +74,9 @@ class DependencyManager:
             'https://code.jquery.com/jquery-1.12.4.min.js',
             'sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ='
         ),
+        'jquery_deserialize': JSResource(
+            'https://cdn.jsdelivr.net/npm/jquery-deserialize@2.0.0-rc1/src/jquery.deserialize.min.js'
+        ),
         'particles.js': JSResource(
             'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js'
         ),
@@ -194,6 +197,7 @@ bundles = {
     'js_search': js_bundle(
         'search',
         'common.js',
+        'filters.js',
         'widgets.js',
         'search.js',
     ),

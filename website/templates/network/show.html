@@ -383,6 +383,7 @@
 
     /**
      * Callback for AsyncFiltersHandler loading representation from server response.
+     * @callback
      * @param {NetworkViewData} data
      * @param {FiltersData} filters_data
      */
@@ -453,7 +454,7 @@
     filters_handler.init({
         form: $('#filters_form'),
         data_handler: load_data,
-        representation_url: "{{ url_for('NetworkView:' +  ('predicted_' if predicted_interactions else '') + 'data', refseq=protein.refseq) }}",
+        endpoint_url: "{{ url_for('NetworkView:' +  ('predicted_' if predicted_interactions else '') + 'data', refseq=protein.refseq) }}",
         on_loading_start: function (){
             if (network)
                 network.destroy();

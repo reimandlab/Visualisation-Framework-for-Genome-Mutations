@@ -1,7 +1,7 @@
 from database import db
 from database_testing import DatabaseTest
 from models import ProteinReferences, UniprotEntry, Protein, Gene
-from search.gene import GeneNameSearch, UniprotSearch
+from search.gene import GeneNameSearch, UniprotSearch, SummarySearch, ProteinNameSearch
 from tests.miscellaneous import mock_proteins_and_genes
 
 
@@ -94,6 +94,31 @@ class TestGeneSearch(DatabaseTest):
 
         assert len(results) == 5
         assert results[0].full_name.startswith('Full name of gene')
+
+    def test_summary(self):
+        mock_proteins_and_genes(2)
+        protein = Protein.query.filter_by(refseq='NM_0001').one()
+        protein.summary = 'This is an important protein for the FooBar pathway'
+
+        search = SummarySearch(minimal_length=3).search
+
+        for accepted in ['FooBar', 'foobar', 'foobar pathway']:
+            assert search(accepted)
+
+        # too short
+        assert not search('an')
+
+        # negative control
+        assert not search('cancer')
+
+    def test_protein_name(self):
+        mock_proteins_and_genes(2)
+        protein = Protein.query.filter_by(refseq='NM_0001').one()
+        protein.full_name = 'Important protein'
+
+        search = ProteinNameSearch().search
+
+        assert search('important')
 
     def test_uniprot(self):
 

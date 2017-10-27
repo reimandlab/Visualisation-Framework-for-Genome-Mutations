@@ -27,7 +27,7 @@
       Search {{ 'again' if results }}
       <span class="glyphicon glyphicon-search"></span>
     </button>
-    {% with widgets=[widgets.is_ptm] %}
+    {% with widgets=widgets.mutations, bar_class="btn-group" %}
       {% include 'filters/bar.html' %}
     {% endwith %}
   </div>

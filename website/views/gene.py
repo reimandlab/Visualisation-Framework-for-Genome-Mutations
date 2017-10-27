@@ -20,7 +20,7 @@ from helpers.views import AjaxTableView
 from helpers.filters import FilterManager, joined_query
 from helpers.filters import Filter
 from helpers.widgets import FilterWidget
-from ._global_filters import source_filter_to_sqlalchemy, create_dataset_labels, source_dependent_filters, \
+from .filters import source_filter_to_sqlalchemy, create_dataset_labels, source_dependent_filters, \
     create_dataset_specific_widgets
 
 from sqlalchemy import and_

@@ -17,9 +17,9 @@ from models import Domain
 from models import Mutation
 from models import Site
 from views.abstract_protein import AbstractProteinView, GracefulFilterManager, ProteinRepresentation
-from ._commons import represent_mutation, drugs_interacting_with_kinases
-from ._global_filters import common_filters, filters_data_view
-from ._global_filters import create_widgets
+from ._commons import represent_mutation
+from .filters import common_filters, ProteinFiltersData
+from .filters import create_widgets
 
 
 def prepare_tracks(protein, raw_mutations):
@@ -60,8 +60,6 @@ class SequenceRepresentation(ProteinRepresentation):
 
         sites, kinases, kinase_groups = self.get_sites_and_kinases(only_sites_with_kinases=False)
 
-        #drugs_by_gene = drugs_interacting_with_kinases(filter_manager, kinases)
-
         tracks = prepare_tracks(protein, self.protein_mutations)
 
         source = filter_manager.get_value('Mutation.sources')
@@ -75,7 +73,6 @@ class SequenceRepresentation(ProteinRepresentation):
             'log_scale': (value_type == 'frequency'),
             'mutations': parsed_mutations,
             'sites': prepare_sites(sites),
-            #'drugs': {gene.name: [drug.to_json() for drug in drugs] for gene, drugs in drugs_by_gene.items()},
             'tracks': tracks
         }
 
@@ -152,8 +149,8 @@ class SequenceView(AbstractProteinView):
         )
 
         response = {
-            'representation': data,
-            'filters': filters_data_view(protein, filter_manager)
+            'content': data,
+            'filters': ProteinFiltersData(filter_manager, protein).to_json()
         }
 
         return jsonify(response)

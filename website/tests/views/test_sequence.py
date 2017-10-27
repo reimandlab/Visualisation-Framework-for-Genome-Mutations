@@ -89,7 +89,7 @@ class TestSequenceView(ViewTest):
         db.session.add_all(kinases)
         db.session.add(p)
 
-        from website.views._global_filters import cached_queries
+        from website.views.filters import cached_queries
         cached_queries.reload()
 
         response = self.client.get('/sequence/show/NM_000123')
@@ -104,7 +104,7 @@ class TestSequenceView(ViewTest):
         assert b'MART' in response.data
         assert response.content_type == 'application/json'
 
-        representation = response.json['representation']
+        representation = response.json['content']
         assert representation['tracks']
         assert representation['mutation_table']
 
@@ -116,7 +116,7 @@ class TestSequenceView(ViewTest):
 
         # let's check clinvar source
         response = self.client.get('/sequence/representation_data/NM_000123?filters=Mutation.sources:in:ClinVar')
-        muts = response.json['representation']['mutations']
+        muts = response.json['content']['mutations']
         assert len(muts) == 1
         assert len(muts[0]['meta']['MIMP']) == 3
 

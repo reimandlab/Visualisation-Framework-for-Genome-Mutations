@@ -638,8 +638,7 @@ class FilterManager:
 
         return skipped, rejected
 
-    @staticmethod
-    def _parse_fallback_query(args):
+    def _parse_fallback_query(self, args):
         """Parse query in fallback format."""
 
         re_value = re.compile(r'filter\[([\w.]+)\]')
@@ -664,7 +663,7 @@ class FilterManager:
                 filter_name,
                 data.get('cmp', None),    # allow not specifying comparator -
                 # if so, we will use default comparator.
-                FilterManager._repr_value(data.get('value'))
+                self._repr_value(data.get('value'))
             ]
             for filter_name, data in filters.items()
         ]
@@ -672,6 +671,11 @@ class FilterManager:
 
     def _parse_request(self, request):
         """Extract and normalize filters' data from Flask's request object.
+
+        Arguments will be extracted from request.args or request.form.
+
+        If arguments contain 'clear_filters' command,
+        all other arguments will be ignored.
 
         Two formats for specifying filters are available:
             modern request format:
@@ -711,7 +715,7 @@ class FilterManager:
         raw_filters = filter(bool, raw_filters)
 
         filters_list = [
-            filter_update.split(self.field_separator)
+            filter_update.split(self.field_separator, maxsplit=2)
             for filter_update in raw_filters
         ]
         return filters_list
@@ -722,10 +726,11 @@ class FilterManager:
             return None
         return comparator
 
-    @staticmethod
-    def _parse_value(value, do_not_split=False):
+    def _parse_value(self, value, do_not_split=False):
         """Safely parse value from string, without eval.
-        For sub-values quotations will be respected."""
+
+        For sub-values quotations will be respected.
+        """
 
         if value == 'True':
             return True
@@ -741,20 +746,20 @@ class FilterManager:
         splitted = split_with_quotation(value)
 
         if not do_not_split and len(splitted) > 1:
-            return [FilterManager._parse_value(v, True) for v in splitted]
+            return [self._parse_value(v, True) for v in splitted]
 
         value = unqoute(value)
 
         return value
 
-    @staticmethod
-    def _repr_value(value):
+    def _repr_value(self, value):
         """Return string representation of given value (of a filter)."""
         if is_iterable_but_not_str(value):
-            return FilterManager.sub_value_separator.join([
+            return self.sub_value_separator.join([
                 quote_if_needed(str(v))
                 for v in value
             ])
+
         return str(value)
 
     def url_string(self, expanded=False):
@@ -770,7 +775,7 @@ class FilterManager:
         """
         return self.filters_separator.join(
             [
-                FilterManager.field_separator.join(
+                self.field_separator.join(
                     map(str, [
                         f.id,
                         f.comparator,
@@ -795,10 +800,13 @@ class FilterManager:
     def reformat_request_url(self, request, endpoint, *args, **kwargs):
         from flask import url_for
         from flask import redirect
+        from flask import current_app
 
         if request.args.get('fallback'):
 
-            url = url_for(endpoint, *args, **kwargs)
+            scheme = current_app.config.get('PREFERRED_URL_SCHEME', 'http')
+
+            url = url_for(endpoint, *args,  _external=True, _scheme=scheme, **kwargs)
 
             filters = self.url_string()
 
@@ -818,4 +826,5 @@ class FilterManager:
             # add other arguments
             if query_string:
                 url += '?' + query_string
+
             return redirect(url)

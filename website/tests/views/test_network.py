@@ -85,7 +85,7 @@ def create_network():
     db.session.commit()
 
     # a new cancer was added, reload is necessary (this should not happen during normal app usage)
-    from website.views._global_filters import cached_queries
+    from website.views.filters import cached_queries
     cached_queries.reload()
 
 
@@ -140,7 +140,7 @@ class TestNetworkView(ViewTest):
         # representation returned in internal endpoint 'data'
         # should be the same as the one expose publicly
         response = self.client.get('/network/data/NM_0007')
-        assert response.json['representation']['network'] == representation
+        assert response.json['content']['network'] == representation
 
     def test_predicted_representation(self):
         create_network()

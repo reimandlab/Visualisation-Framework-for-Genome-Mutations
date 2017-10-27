@@ -56,6 +56,24 @@ select.form-control
       max-height: inherit
       overflow-y: visible
 
+.checkboxes-inline
+  .checkbox
+    display: inline-block
+    label
+      padding-right: 15px
+    @media #{$under-pc}
+      label
+        padding-right: 10px
+  &.widget
+    .name
+      display: inline-block
+      padding-right: 15px
+    .value
+      display: inline-block
+  .js-shown
+    display: inline-block!important
+
+
 .widget-panel
   z-index: 1
 
@@ -108,7 +126,6 @@ select.form-control
     padding-bottom: 0
 
 .widgets-bar.widgets
-  float: right
 
   ul
     padding: 0
@@ -116,15 +133,15 @@ select.form-control
   label
     margin: 0
 
-  .widget
-    .name
-      float: right
-      padding-left: 10px
 
-    .value
-      padding-left: 5px
-      position: relative
-      top: 2px
+.widget.checkbox.pull-right
+  .name
+    float: right
+    padding-left: 3px
+
+  .value
+    float: left
+    padding-left: 20px
 
   .save
     margin-left: 10px

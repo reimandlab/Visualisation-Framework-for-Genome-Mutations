@@ -12,8 +12,8 @@ from helpers.widgets import FilterWidget
 from models import Mutation
 from views._commons import drugs_interacting_with_kinases
 from views.abstract_protein import AbstractProteinView, get_raw_mutations, GracefulFilterManager, ProteinRepresentation
-from ._global_filters import common_filters, filters_data_view
-from ._global_filters import create_widgets
+from .filters import common_filters, ProteinFiltersData
+from .filters import create_widgets
 
 
 class Target:
@@ -434,13 +434,13 @@ class NetworkView(AbstractProteinView):
         representation = create_representation(protein, filter_manager, include_mimp_gain_kinases)
 
         response = {
-            'representation': {
+            'content': {
                 'network': representation.as_json(),
                 'clone_by_site': filter_manager.get_value('JavaScript.clone_by_site'),
                 'show_sites': filter_manager.get_value('JavaScript.show_sites'),
                 'collide_drugs': filter_manager.get_value('JavaScript.collide_drugs'),
             },
-            'filters': filters_data_view(protein, filter_manager)
+            'filters': ProteinFiltersData(filter_manager, protein).to_json()
         }
 
         return jsonify(response)

@@ -5,7 +5,7 @@ from flask import jsonify
 from database import bdb
 from models import Mutation
 from helpers.filters import FilterManager
-from ._global_filters import common_filters
+from .filters import common_filters
 from ._commons import represent_mutation
 from operator import attrgetter
 from collections import OrderedDict
